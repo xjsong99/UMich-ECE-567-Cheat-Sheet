@@ -1,0 +1,491 @@
+\documentclass[10pt,landscape,letterpaper]{article}
+\usepackage[letterpaper,landscape,margin=0pt]{geometry}
+\usepackage{multicol}
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{xcolor}
+\usepackage{anyfontsize}
+\usepackage[normalem]{ulem}
+
+\let\oldtextbf\textbf
+\renewcommand{\textbf}[1]{\uline{\oldtextbf{#1}}}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\columnsep}{6pt}
+\setlength{\columnseprule}{0.2pt}
+\setlength{\mathsurround}{0pt}
+
+% Override \section: same font/size as body, just bold + auto number, run-in.
+% A thin horizontal rule separates consecutive blocks.
+\renewcommand{\section}[1]{%
+  \ifnum\value{section}>0\par\vspace{1pt}\hrule\vspace{1pt}\fi
+  \refstepcounter{section}\oldtextbf{\thesection\ #1}\ }
+
+\pagestyle{empty}
+
+\begin{document}
+\fontsize{5.95}{5.5}\selectfont
+
+\begin{multicols*}{4}
+\raggedright
+
+\section{Markov chains \& stationary distributions}
+
+\textbf{Markov chain.} Finite states \(S\). Future depends only on current state:
+\(\Pr(X_k=j\mid X_{k-1}=i,X_{k-2},\ldots,X_0)=\Pr(X_k=j\mid X_{k-1}=i)\).
+\textbf{Time-homog.} Transition probs do not depend on \(k\):
+\(P_{ij}=\Pr(X_k=j\mid X_{k-1}=i)\), each row sums to \(1\).
+For row distribution \(p_i(k)=\Pr(X_k=i)\):
+\(p(k+1)=p(k)P\), hence \(p(k)=p(0)P^k\).
+\textbf{Stationary distribution.} A distribution unchanged by one transition:
+\(\omega=\omega P,\ \omega_i\ge0,\ \omega{\bf1}=1\).
+Compute by solving \(\omega(I-P)=0\) with \(\omega{\bf1}=1\).
+\textbf{Reachable/irreducible.} \(j\) reachable from \(i\) if
+\(\exists T\) with \((P^T)_{ij}>0\). Irreducible means every pair communicates.
+\textbf{Thm 1.} finite irreducible MC \(\Rightarrow\) unique stationary \(\omega\).
+\textbf{Period.} \(i\) has period \(d\) if return times to \(i\) are multiples of \(d\);
+equiv. \(d(i)=\gcd\{t:(P^t)_{ii}>0\}\). Aperiodic iff all \(d(i)=1\).
+\textbf{Thm 2.} finite irreducible + aperiodic
+\(\Rightarrow \lim_{k\to\infty}p(k)=\omega\) for any \(p(0)\).
+Irreducible alone need not converge: \(P=[0,1;1,0]\) oscillates, though
+\(\omega=(1/2,1/2)\). Not unique: \(P=I\), every distribution is stationary.
+\textbf{PageRank ex.} \(P=[1/2,1/2,0;1/2,0,1/2;0,1,0]\) is irreducible/aperiodic;
+\(\omega=(2/5,2/5,1/5)\), check \(\omega P=\omega\).
+
+\section{Value iteration \& policy iteration}
+
+\textbf{Setup.} Finite \(S,A\); known \(P_{x,x'}(a)\), \(\bar r(x,a)=\mathbb{E}[r(x,a)]\) (model-based).
+Discounted Bellman optimality:
+\(V^*(x)=\max_a\mathbb{E}[r(x,a)+\gamma V^*(x')]\).
+\textbf{Value iteration (VI).} Start \(V_0\); update
+\(V_{k+1}(x)\leftarrow\max_a\{\bar r(x,a)+\gamma\sum_{x'}P_{x,x'}(a)V_k(x')\}\).
+Then \(V_k\to V^*\). Optimal policy:
+\(\mu^*(x)\in\arg\max_a\{\bar r(x,a)+\gamma\sum_{x'}P_{x,x'}(a)V^*(x')\}\).
+\textbf{Policy iteration (PI).} Init \(\mu_0\), iterate:
+(i) \emph{eval} — solve linear Bellman eq
+\(V_{\mu_k}(i)=\bar r(i,\mu_k(i))+\gamma\sum_j P_{ij}(\mu_k(i))V_{\mu_k}(j)\);
+(ii) \emph{improve} —
+\(\mu_{k+1}(i)\in\arg\max_u\{\bar r(i,u)+\gamma\sum_j P_{ij}(u)V_{\mu_k}(j)\}\);
+stop if \(V_{\mu_{k+1}}=V_{\mu_k}\). Monotone: \(V_{\mu_{k+1}}\ge V_{\mu_k}\).
+\textbf{Challenges.} Need \(\bar r,P\) known; scale only to finite \(S,A\); otherwise must \emph{learn}.
+
+\section{Q-learning \& SARSA updates}
+
+\textbf{Q-function.}
+\(Q(i,u)=\mathbb{E}[r(i,u)+\alpha V^*(j)]=\bar r(i,u)+\alpha\!\sum_j\!P_{ij}(u)\max_v Q(j,v)\).
+Optimal policy \(\mu^*(i)\in\arg\max_u Q(i,u)\) (no model needed).
+\textbf{Q-learning (off-policy).} Given experience \((i,u,r,j)\), TD update \(\tilde Q(i,u)\!\leftarrow\!(1{-}\beta_k)\tilde Q(i,u)+\beta_k(r+\alpha\max_v\tilde Q(j,v))\) \(=\) \(\tilde Q(i,u)+\beta_k[r+\alpha\max_v\tilde Q(j,v)-\tilde Q(i,u)]\).
+\textbf{SARSA (on-policy).} \(\epsilon\)-greedy: w.p.\ \(1{-}\epsilon_k\) take \(u_k\!\in\!\arg\max_v\tilde Q(x_k,v)\), else uniform random; \(\epsilon_k\!\downarrow\!0\).
+Using \((x_{k-1},u_{k-1},r,x_k,u_k)\):
+\(\tilde Q(x_{k-1},u_{k-1})\!\leftarrow\!\tilde Q(x_{k-1},u_{k-1})+\beta_k[r+\alpha\tilde Q(x_k,u_k)-\tilde Q(x_{k-1},u_{k-1})]\).
+\textbf{Key diff.} Q-learning bootstraps \emph{greedy} \(\max_v\tilde Q(j,v)\);
+SARSA bootstraps the \emph{actually chosen} \(\tilde Q(x_k,u_k)\).
+\textbf{Off- vs on-policy.} Target policy = learned; behavior policy = samples.
+Q-learning: target \(=\mu^*\), behavior = any (each action \(\infty\)-often).
+SARSA: target = behavior = \(\epsilon\)-greedy.
+\textbf{Boltzmann expl.} \(\mu_k(x_k){=}u\) w.p.\
+\(\exp(Q_k(x_k,u)/T)/\!\sum_v\!\exp(Q_k(x_k,v)/T)\);
+\(T\!\to\!0\Rightarrow\) greedy \(\arg\max\).
+\textbf{Ex (Q-learn).} Experience \((5,c,0,6)\) with
+\(\tilde Q(5,c){=}0.2,\,\tilde Q(6,c){=}{-}0.8,\,\tilde Q(6,cc){=}{-}0.5\):
+\(\tilde Q(5,c)\leftarrow 0.2+\beta_k(0+\alpha\!\max\{-0.8,-0.5\}-0.2)=0.2+\beta_k(-0.5\alpha-0.2)\).
+\textbf{Ex (SARSA).} \((4,cc,0,5)\); \(\tilde Q(5,c){=}0.2<\tilde Q(5,cc){=}0.3\Rightarrow u_k{=}cc\).
+\(\tilde Q(4,cc)\leftarrow 0.34+\beta_k(0+\alpha\!\cdot\!0.3-0.34)\).
+\textbf{Ex (Q2 '24).} 3 states \(\times\) 2 actions, \(\alpha{=}0.9,\beta{=}0.1\); \(Q_0{=}\bigl(\begin{smallmatrix}0.1&0.9\\0.2&0.3\\0.3&0.5\end{smallmatrix}\bigr)\).
+Trace \((1,2,1)\!\to\!(2,1,2)\!\to\!(3,2,3)\!\to\!(2,2,0)\).
+Update: \(Q(x_k,u_k){\leftarrow}(1{-}\beta)Q(x_k,u_k){+}\beta[r{+}\alpha Q(x_{k+1},u_{k+1})]\).
+\(Q_1(1,2){=}0.9(0.9){+}0.1(1{+}0.9(0.2)){=}0.928\).
+\(Q_2(2,1){=}0.9(0.2){+}0.1(2{+}0.9(0.5)){=}0.425\).
+\(Q_3(3,2){=}0.9(0.5){+}0.1(3{+}0.9(0.3)){=}0.777\).
+Other \(Q\)-entries unchanged at each step.
+
+\section{Contraction mapping \& its application for proving convergence}
+
+\textbf{Setup.} Discounted MDP, \(\alpha\in[0,1)\).
+\(V_\mu(i)=\mathbb{E}[\sum_{k=0}^\infty\alpha^k r(x_k,\mu(x_k))\mid x_0=i]\),
+\(V^*(i)=\sup_\mu V_\mu(i)\).
+\textbf{Contraction Mapping Thm (Banach).} \(T\!:\!\mathbb{R}^S\!\to\!\mathbb{R}^S\) with
+\(\|T(x)-T(y)\|\le\alpha\|x-y\|\), \(\alpha\in[0,1)\). Then
+(i) \(\exists!\,x^*\!:\,x^*=T(x^*)\);
+(ii) \(X_{k+1}=T(X_k)\to x^*\) from any \(X_0\).
+\textbf{Proof.} Let \(x_n{=}T^n(x_0)\).
+(a) \(\|x_{n+1}{-}x_n\|=\|T(x_n){-}T(x_{n-1})\|\le\alpha\|x_n{-}x_{n-1}\|\le\cdots\le\alpha^n\|x_1{-}x_0\|\).
+(b) Triangle ineq.: \(\|x_{n+l}{-}x_n\|\le\sum_{k=n}^{n+l-1}\!\|x_{k+1}{-}x_k\|\) \(\le\) \((\alpha^n{+}\alpha^{n+1}{+}\cdots)\|x_1{-}x_0\|\) \(\le\) \(\tfrac{\alpha^n}{1-\alpha}\|x_1{-}x_0\|\to 0\).
+So \(\{x_n\}\) is Cauchy; by completeness of \(\mathbb R^S\), \(\lim_{n\to\infty}x_n=x^*\) exists.
+(c) Fp: \(\|T(x_n){-}T(x^*)\|\le\alpha\|x_n{-}x^*\|\), so \(\lim_{n\to\infty}T(x_n)=T(x^*)\); also \(T(x_n){=}x_{n+1}\), so \(\lim_{n\to\infty}T(x_n)\) \(=\) \(\lim_{n\to\infty}x_{n+1}\) \(=\) \(x^*\). Hence \(T(x^*){=}x^*\).
+(d) Unique: if \(T(y^*){=}y^*\), \(\|y^*{-}x^*\|=\|T(y^*){-}T(x^*)\|\le\alpha\|y^*{-}x^*\|\); since \(\alpha{<}1\), this forces \(y^*{=}x^*\).
+\textbf{Policy eval op.} \(T_\mu(V){=}\bar r_\mu+\alpha P_\mu V\), \(P_{ij}{=}P_{ij}(\mu(i))\); \(T_\mu(x){-}T_\mu(y)=\alpha P_\mu(x{-}y)\), so
+\(\|T_\mu(x){-}T_\mu(y)\|_\infty\) \(=\) \(\alpha\max_i|\!\sum_j\!P_{ij}(x_j{-}y_j)|\) \(\le\) \(\alpha\max_i\!\sum_j\!P_{ij}|x_j{-}y_j|\) \(\le\) \(\alpha(\max_i\!\sum_j\!P_{ij})\|x{-}y\|_\infty\) \(=\) \(\alpha\|x{-}y\|_\infty\) (rows of \(P_\mu\) sum to 1). Hence \(V_\mu\) unique.
+\textbf{Bellman optimality op.}
+\(T(V)(i)=\max_u\{\bar r(i,u)+\alpha\!\sum_j\!P_{ij}(u)V(j)\}\); VI: \(V_{k+1}=T(V_k)\).
+\textbf{Thm 1 (Bellman eq.\ for \(V^*\)).} \(V^*=T(V^*)\), i.e.\
+\(V^*(i)=\max_u\mathbb E[r(i,u)+\alpha V^*(x_1)\!\mid\!x_0{=}i,u_0{=}u]\).
+\emph{Proof.} Non-stationary policy \(\mu{=}(\mu_0,\mu_1,\ldots)\), tail \(\mu_1{=}(\mu_1,\mu_2,\ldots)\).
+(\(\le\)) \(V_\mu(i)=\bar r(i,\mu_0(i))+\alpha\!\sum_j\!P_{ij}(\mu_0(i))V_{\mu_1}(j)\) \(\le\) \(\bar r+\alpha\!\sum\!PV^*\) \(\le\) \(\max_u\{\bar r+\alpha\!\sum\!PV^*\}\) (used \(V_{\mu_1}\!\le\!V^*\)). Taking \(\sup_\mu\): \(V^*(i)\le T(V^*)(i)\).
+(\(\ge\)) Given \(\varepsilon{>}0\), pick \(\mu^{(j)}\) with \(V_{\mu^{(j)}}(j)\ge V^*(j){-}\varepsilon\). Use \(u_0\) at \(t{=}0\), then follow \(\mu^{(j)}\) when in state \(j\): \(V^*(i)\ge\bar r(i,u_0)+\alpha\!\sum_j\!P_{ij}(u_0)V_{\mu^{(j)}}(j)\) \(\ge\) \(\bar r(i,u_0)+\alpha\!\sum_j\!P_{ij}(u_0)V^*(j)-\alpha\varepsilon\ \forall u_0\). Take \(\max_{u_0}\) then \(\varepsilon{\to}0\): \(V^*(i)\ge T(V^*)(i)\).
+\textbf{Thm 2 (T is \(\alpha\)-contraction)} (\(\infty\)-norm).
+\emph{Fact 1} (monotone): if \(V_1\le V_2\), then
+\(T(V_1)(i){=}\max_u\{\bar r{+}\alpha\!\sum\!P_{ij}V_1\}\le\max_u\{\bar r{+}\alpha\!\sum\!P_{ij}V_2\}{=}T(V_2)(i)\).
+\emph{Fact 2} (shift): \(T(V{+}\gamma e)(i){=}\max_u\{\bar r{+}\alpha\!\sum\!P_{ij}(V_j{+}\gamma)\}{=}T(V)(i){+}\alpha\gamma\)
+(since \(\sum_j P_{ij}{=}1\)).
+Let \(b{=}\|V_1{-}V_2\|_\infty\), so \(V_2{-}be\le V_1\le V_2{+}be\).
+Apply \(T\) (Fact 1): \(T(V_2{-}be)\le T(V_1)\le T(V_2{+}be)\); shift (Fact 2): \(T(V_2){-}\alpha be\le T(V_1)\le T(V_2){+}\alpha be\), so entrywise \(|T(V_1){-}T(V_2)|\le\alpha be\), hence \(\|T(V_1){-}T(V_2)\|_\infty\le\alpha b\). Thus \(V^*\) unique, \(\lim_{k\to\infty}V_k=V^*\) from any \(V_0\).
+\textbf{Thm 3 (optimal policy).}
+\(\mu^*(i)\in\arg\max_u\{\bar r(i,u)+\alpha\!\sum_j\!P_{ij}(u)V^*(j)\}\).
+\emph{Proof.} By construction \(T_{\mu^*}(V^*)(i)\) \(=\) \(\bar r(i,\mu^*(i))+\alpha\!\sum_j\!P_{ij}(\mu^*(i))V^*(j)\) \(=\) \(\max_u\{\cdots\}\) \(=\) \(V^*(i)\) (Thm 1). Since \(T_{\mu^*}\) has unique fp, \(V_{\mu^*}=V^*\); so \(\mu^*\) optimal.
+
+\section{Policy improvement \& max-inequality (HW4)}
+
+\textbf{PI improvement thm.} With \(\mu_{k+1}(i)\in\arg\max_u\{\bar r(i,u)+\alpha\!\sum_j\!P_{ij}(u)V_{\mu_k}(j)\}\),
+one has \(V_{\mu_k}\le V_{\mu_{k+1}}\).
+\emph{Proof.} Define \(Q_{\mu_k}(i,u){=}\bar r(i,u)+\alpha\!\sum_j\!P_{ij}(u)V_{\mu_k}(j)\). By the update, \(V_{\mu_k}(i)\) \(\le\) \(Q_{\mu_k}(i,\mu_{k+1}(i))\) \(=\) \(\bar r(i,\mu_{k+1}(i))+\alpha\!\sum_j\!P_{ij}(\mu_{k+1}(i))V_{\mu_k}(j)\). Plug \(V_{\mu_k}(j)\le Q_{\mu_k}(j,\mu_{k+1}(j))\) into the RHS: \(V_{\mu_k}(i)\le\mathbb E[r(i,\mu_{k+1}(i))+\alpha r(j,\mu_{k+1}(j))+\alpha^2\!\sum_{j'}\!P_{jj'}(\mu_{k+1}(j))V_{\mu_k}(j')]\). Unroll: \(V_{\mu_k}(i)\) \(\le\) \(\mathbb E[\sum_{t=0}^\infty\alpha^t r(i_t,\mu_{k+1}(i_t))\!\mid\!i_0{=}i]\) \(=\) \(V_{\mu_{k+1}}(i)\).
+\textbf{PI convergence.} If \(\mu_k=\mu_{k+1}\), then \(\mu_k\) is optimal.
+\emph{Proof.} Def of \(\mu_{k+1}\): \(V_{\mu_{k+1}}(i)=\max_u\{\bar r(i,u)+\alpha\!\sum_j\!P_{ij}(u)V_{\mu_k}(j)\}\).
+Since \(V_{\mu_k}=V_{\mu_{k+1}}\), this is the Bellman optimality eq.; by uniqueness \(V_{\mu_k}=V^*\).
+\textbf{Max-inequality.} \(|\max_x f(x)-\max_x g(x)|\le\max_x|f(x)-g(x)|\).
+\emph{Proof.} Let \(x_1\in\arg\max f,\,x_2\in\arg\max g\); then \(|\max f-\max g|=|f(x_1)-g(x_2)|\).
+\emph{Case 1} \(f(x_1)\ge g(x_2)\): \(f(x_1)-g(x_2)\le f(x_1)-g(x_1)\le|f(x_1)-g(x_1)|\le\max_x|f-g|\)
+(used \(g(x_2)\ge g(x_1)\)).
+\emph{Case 2} \(f(x_1)\le g(x_2)\): \(g(x_2)-f(x_1)\le g(x_2)-f(x_2)\le|g(x_2)-f(x_2)|\le\max_x|f-g|\)
+(used \(f(x_1)\ge f(x_2)\)).
+
+\section{Update of Q-learning with linear function approximation}
+
+\textbf{Linear FA.} \(Q(i,u)\approx\tilde Q(i,u;w)=w^\top\phi(i,u)=\sum_{m=1}^M w_m\phi_m(i,u)\);
+\(\phi\in\mathbb R^M\) given features, \(w\in\mathbb R^M\) shared weights.
+\textbf{TD error.} \(\delta_k(w)=r(x_k,u_k)+\alpha\max_v w^\top\phi(x_{k+1},v)-w^\top\phi(x_k,u_k)\).
+\textbf{Derivation via SGD.} Tabular: \(\tilde Q(x_k,u_k)\leftarrow\tilde Q(x_k,u_k)-\tfrac12\beta_k\partial\delta_k^2/\partial\tilde Q(x_k,u_k)=\tilde Q(x_k,u_k)+\beta_k\delta_k\).
+Linear FA (gradient through \(w^\top\phi(x_k,u_k)\), ignore \(\max_v\) term):
+\(w\leftarrow w-\tfrac12\beta_k\partial\delta_k^2/\partial w=w+\beta_k\delta_k(w)\phi(x_k,u_k)\).
+
+\section{Double estimator \& update of DDQN}
+
+\textbf{Overestimation bias.} Jensen: \(\mathbb E[\max_v X_v]\ge\max_v\mathbb E[X_v]\).
+Model noise: \(\tilde Q(i,u){=}Q(i,u){+}Y_{i,u}\) with \(\mathbb E[Y_{i,u}]{=}0\).
+Q-learning target bias \(Z=\alpha(\max_v\tilde Q(j,v){-}\max_v Q(j,v))\) has \(\mathbb E[Z]>0\) in general.
+\textbf{Ex (iid uniform noise).} If \(Q(j,\cdot)\) is constant and \(Y_{j,v}\sim\mathrm{Unif}[-\kappa,\kappa]\) iid over \(n\) actions, \(\mathbb E[Z]=\alpha\,\mathbb E[\max_v Y_{j,v}]\). With \(f{=}\tfrac1{2\kappa}\), \(F(x){=}\tfrac12{+}\tfrac{x}{2\kappa}\), max-pdf \(nfF^{n-1}\); sub \(y{=}\tfrac12{+}\tfrac x{2\kappa}\): \(\mathbb E[\max Y]\) \(=\) \(n\kappa\!\int_0^1\!(2y{-}1)y^{n-1}dy\) \(=\) \(\kappa\tfrac{n-1}{n+1}\). So \(\mathbb E[Z]=\alpha\kappa\tfrac{n-1}{n+1}\) (grows with \(n\)).
+\textbf{Double Q-learning (van Hasselt '10).} Maintain two nets \(w,w'\); at each step randomly pick one to update.
+Est.\ 1: \(w\leftarrow w+\beta_k\delta_k\nabla_w Q(x_k,u_k;w)\),
+\(\delta_k=r(x_k,u_k)+\alpha Q(x_{k+1},\arg\max_v Q(x_{k+1},v;w);\,w')-Q(x_k,u_k;w)\).
+Est.\ 2: \(w'\leftarrow w'+\beta_k\delta_k'\nabla_{w'}Q(x_k,u_k;w')\),
+\(\delta_k'=r(x_k,u_k)+\alpha Q(x_{k+1},\arg\max_v Q(x_{k+1},v;w');\,w)-Q(x_k,u_k;w')\).
+\emph{Select} action with one net, \emph{evaluate} with the other.
+\textbf{Double estimator (underestimator) thm.} For RVs \(X_1,\ldots,X_M\) with sample set \(S_i\), split \(S_i=S_i^{(1)}\sqcup S_i^{(2)}\); empirical means \(\mu_i^{(a)}\).
+Let \(i^*\in\arg\max_i\mu_i^{(1)}\); estimate \(\max_i\mathbb E[X_i]\) by \(\mu_{i^*}^{(2)}\).
+\emph{Thm}: \(\mathbb E[\mu_{i^*}^{(2)}]\le\max_i\mathbb E[X_i]\).
+\emph{Proof}: if \(i^*\) is the true maximizer, \(\mathbb E[\mu_{i^*}^{(2)}]=\mathbb E[X_{i^*}]=\max_i\mathbb E[X_i]\); otherwise \(<\max\).
+\textbf{AMSE (Weng et al '20).} With rates \(c/k\) vs \(2c/k\) (Double-Q):
+\(\mathrm{AMSE}(w^{(1)})\ge\mathrm{AMSE}(w)\); \(\mathrm{AMSE}(\tfrac{w^{(1)}+w^{(2)}}{2})=\mathrm{AMSE}(w)\).
+Double-Q learns faster without sacrificing AMSE.
+\textbf{DDQN (Double DQN, van Hasselt–Guez–Silver).} Decouple action selection from evaluation:
+\(y_{k,b}=r_{k,b}+\alpha\,Q(x_{k+1,b},\arg\max_u Q(x_{k+1,b},u;w);\,w_{\text{tgt}})\).
+Online net \(w\) picks action; target net \(w_{\text{tgt}}\) evaluates. Target update (periodic copy) unchanged. Cuts DQN overestimation.
+
+\section{Score function definition \& policy gradient theorem}
+
+\textbf{Parameterized policy.} \(\pi_w(u|x)=\Pr(\text{action}{=}u\!\mid\!\text{state}{=}x)\).
+\textbf{Gibbs (softmax).} Finite \(A\): \(\pi_w(a|x)=\frac{\exp(w^\top\phi(x,a))}{\sum_u\exp(w^\top\phi(x,u))}\).
+\textbf{Gaussian.} Cont.\ \(A\): \(\pi_w(a|x)=\mathcal N(a;\mu_w(x),\sigma^2 I)\), \(\mu_w(x)=\phi(x)^\top w\).
+\textbf{Score function.} \(\nabla_w\log\pi_w(u|x)\).
+Gibbs: \(\nabla_w\log\pi_w(u|x)=\phi(x,u)-\mathbb E_{u'\sim\pi_w(\cdot|x)}[\phi(x,u')]\).
+Gaussian: \(\nabla_w\log\pi_w(u|x)=(u-\mu(x))\phi(x)/\sigma^2\).
+\textbf{Value \& PG update.} \(V_w(x_0)\) \(=\) \(\sum_u Q_w(x_0,u)\pi_w(u|x_0)\) \(=\) \(\mathbb E_{\pi_w}\!\left[\sum_{k=0}^\infty\alpha^k r(x_k,u_k)\!\mid\!x_0\right]\); \(w\leftarrow w+\beta\nabla_w V_w(x_0)\). Here \(\mathbb E_{\pi_w}[\cdot|x_0]\) is over the trajectory law \(u_k\!\sim\!\pi_w(\cdot|x_k)\), \(x_{k+1}\!\sim\!P(\cdot|x_k,u_k)\).
+\textbf{Policy Gradient Thm.} \(\nabla_w V_w(x_0)\) \(=\) \(\mathbb E_{\pi_w}\!\left[\sum_{k=0}^\infty\alpha^k\nabla_w\log\pi_w(u_k|x_k)\,Q_w(x_k,u_k)\!\mid\!x_0\right]\), or equivalently \(=\) \(\tfrac{1}{1-\alpha}\mathbb E_{x\sim\eta_w,\,u\sim\pi_w(\cdot|x)}[\nabla_w\log\pi_w(u|x)\,Q_w(x,u)]\), where \(\eta_w(x)=(1-\alpha)\sum_{k=0}^\infty\alpha^k\Pr_{\pi_w}(x_k{=}x\mid x_0)\) is the \emph{discounted state distribution}.
+\emph{Proof.} Let \(x_0{=}i\); \(V_w(i)=\sum_u Q_w(i,u)\pi_w(u|i)\), so \(\nabla V_w(i)=\sum_u[\nabla_w Q_w(i,u)\pi_w(u|i)+Q_w(i,u)\nabla_w\pi_w(u|i)]\). Let \(\mathbb E_i[\cdot]{:=}\mathbb E_{u_0\sim\pi_w(\cdot|i),\,x_1\sim P(\cdot|i,u_0)}[\cdot]\).
+\emph{Term 1}: \(Q_w(i,u){=}\bar r(i,u)+\alpha\!\sum_j\!P_{ij}(u)V_w(j)\), so \(\nabla_w Q_w(i,u)=\alpha\!\sum_j\!P_{ij}(u)\nabla V_w(j)\); averaging over \(u_0\!\sim\!\pi_w(\cdot|i)\) gives \(\alpha\mathbb E_i[\nabla V_w(x_1)]\).
+\emph{Term 2}: log-trick \(\nabla_w\pi_w=\pi_w\nabla_w\log\pi_w\) gives \(\mathbb E_i[Q_w(i,u_0)\nabla_w\log\pi_w(u_0|i)]\). So \(\nabla V_w(i)=\mathbb E_i[Q_w(i,u_0)\nabla_w\log\pi_w(u_0|i)]+\alpha\mathbb E_i[\nabla V_w(x_1)]\); unroll to the sum: \(\sum_k\alpha^k\sum_{x,u}\Pr(x_k{=}x|x_0)\,\pi_w(u|x)\,\nabla_w\log\pi_w(u|x)\,Q_w(x,u)\). Bundle \(\sum_k\alpha^k\Pr(x_k{=}x|x_0)=\eta_w(x)/(1{-}\alpha)\) to get \(\tfrac{1}{1-\alpha}\mathbb E_{x\sim\eta_w,\,u\sim\pi_w(\cdot|x)}[\nabla_w\log\pi_w(u|x)Q_w(x,u)]\).
+
+\section{REINFORCE \& variance reduction}
+
+\textbf{REINFORCE (Williams '88).} Generate episode \(x_0,u_0,\ldots,x_T\) under \(\pi_w\).
+Monte-Carlo return \(\hat Q_w(x_k,u_k){=}\!\sum_{\tau=k}^{T-1}\!\alpha^{\tau-k}r(x_\tau,u_\tau)\).
+For each \(k\): \(w\leftarrow w+\beta\alpha^k\nabla_w\log\pi_w(u_k|x_k)\,\hat Q_w(x_k,u_k)\).
+High variance from single-episode returns.
+\textbf{Control variates.} To estimate \(\mathbb E[F]\), use \(F'=F-\omega\) with \(\mathbb E[\omega]=0\).
+Then \(\mathbb E[F']=\mathbb E[F]\) (unbiased); \(\mathrm{Var}(F')=\mathrm{Var}(F)-2\mathrm{Cov}(F,\omega)+\mathrm{Var}(\omega)\),
+smaller than \(\mathrm{Var}(F)\) when \(\omega\) is strongly correlated with \(F\).
+\textbf{Baseline thm.} For any state-only \(G_w(x)\) (action-independent):
+\(\mathbb E_{u_k\sim\pi_w(\cdot|x_k)}[\nabla_w\log\pi_w(u_k|x_k)\,G_w(x_k)]=0\).
+\emph{Proof.} \(\sum_u\pi_w(u|x_k)\nabla_w\log\pi_w(u|x_k)G_w(x_k)=G_w(x_k)\!\sum_u\!\nabla_w\pi_w(u|x_k)=G_w(x_k)\nabla_w(1)=0\).
+Hence PGT holds with \(Q_w\) replaced by advantage \(A_w=Q_w-G_w\):
+\(\nabla_w V_w(x_0)=\mathbb E_{\pi_w}\!\big[\sum_{k=0}^\infty\alpha^k\nabla_w\log\pi_w(u_k|x_k)A_w(x_k,u_k)\big|x_0\big]\).
+\textbf{Advantage actor-critic.} Pick \(G_w(x)=V_w(x)\); advantage \(A_w(s,a)=Q_w(s,a)-V_w(s)\).
+\textbf{TD residual} is an unbiased estimator of \(A_w\):
+\(A_w(x_k,u_k)\approx r(x_k,u_k)+\alpha V_w(x_{k+1})-V_w(x_k)\) (same form as Q-learning TD error with \(V\) in place of \(\max_v Q\)).
+PG estimator (let \(\delta_k=r(x_k,u_k)+\alpha V_w(x_{k+1})-V_w(x_k)\)):
+\(\nabla_w V_w(x_0)\approx\sum_{k=0}^{T-1}\alpha^k\nabla_w\log\pi_w(u_k|x_k)\,\delta_k\).
+Critic learns \(V_w\) (e.g.\ via TD(0)); actor updates with this lower-variance signal.
+\textbf{Ex (baseline REINFORCE).} Gaussian actor \(\pi_w(u|x){=}\mathcal N(u;wx,1)\), score \((u{-}wx)x\). Fixed baseline \(V_b(x){=}x\); \(w{=}1,\,\alpha{=}0.5\).
+Episode \((x_k,u_k,r_k)\): \((1,2,1)\!\to\!(2,1,2)\!\to\!(1,2,{-}1)\).
+\emph{MC returns}: \(\hat Q_0{=}1{+}0.5(2){+}0.25({-}1){=}1.75\); \(\hat Q_1{=}2{+}0.5({-}1){=}1.5\); \(\hat Q_2{=}{-}1\).
+\emph{Advantages} \(\hat A_k{=}\hat Q_k{-}V_b(x_k)\): \(\hat A_0{=}0.75,\,\hat A_1{=}{-}0.5,\,\hat A_2{=}{-}2\).
+\emph{Scores} \((u_k{-}wx_k)x_k\): \(1,\,{-}2,\,1\).
+\emph{Sum} \(\sum_k\alpha^k\text{score}_k\hat A_k\):
+\(1(1)(0.75){+}0.5({-}2)({-}0.5){+}0.25(1)({-}2)\)
+\(=0.75{+}0.5{-}0.5=\mathbf{0.75}\).
+
+\section{Natural policy gradient \& its connection to soft policy iteration}
+
+\textbf{PG as optimization.} Standard PG solves \(\max_{\tilde w}V_w(x_0)+\nabla V_w(x_0)^\top(\tilde w-w)-\tfrac{1}{2\beta}\|\tilde w-w\|^2\); optimum \(\tilde w=w+\beta\nabla V_w(x_0)\). Issue: Euclidean distance in weight space doesn't reflect policy change.
+\textbf{NPG idea (KL proximal).} Replace Euclidean by KL in policy space: \(\max_{\tilde w}V_w(x_0)+\nabla V_w(x_0)^\top(\tilde w-w)-\tfrac{1}{\beta}\mathbb E_{x\sim\eta_w}[\mathrm{KL}(\pi_{\tilde w}(\cdot|x)\,\|\,\pi_w(\cdot|x))]\).
+\textbf{Taylor of KL at \(\tilde w{=}w\):} zeroth \(\mathrm{KL}{=}0\); first \(\nabla_{\tilde w}\mathrm{KL}|_{\tilde w=w}{=}0\); second \(\nabla^2_{\tilde w}\mathrm{KL}|_{\tilde w=w}\) \(=\) \(\mathbb E_{u\sim\pi_w(\cdot|x)}[\nabla_w\log\pi_w(u|x)\nabla_w\log\pi_w(u|x)^\top]\) \(=\) \(\mathrm{FI}_w(x)\) (Fisher info). Average \(\mathrm{FI}_w=\mathbb E_{x\sim\eta_w}[\mathrm{FI}_w(x)]\).
+\textbf{NPG update.} \(w\leftarrow w+\beta\,\mathrm{FI}_w^{\dagger}\nabla_w V_w(x_0)\); \(\dagger\) = Moore–Penrose pseudo-inverse.
+\textbf{Convergence (tabular).}
+PG (Mei '20): \(V^*(d)-V_{w_t}(d)\le\tfrac{16S}{(1-\alpha)^5}\|\pi^*/d\|_\infty^2\tfrac{c^2}{t}\).
+NPG (Agarwal '20): \(V^*(x)-V_{w_t}(x)\le\tfrac{2}{(1-\alpha)^2 t}\ \forall x\) (rate independent of \(S\)).
+\textbf{Softmax (tabular).} \(\pi_w(u|x)=e^{w_{x,u}}/\!\sum_v e^{w_{x,v}}\).
+\textbf{Soft policy iteration.} \(\pi_{t+1}(u|x)\propto\exp(\beta Q_{\pi_t}(x,u))\).
+\textbf{NPG + entropy reg.\ \(\Leftrightarrow\) Soft PI.}
+Entropy-regularized value:
+\(V_{w,\tau}(x_0)=V_w(x_0)+\tau\mathbb E_{x\sim\eta_w}[\sum_u\pi_w(u|x)\log\tfrac{1}{\pi_w(u|x)}]\).
+NPG on \(V_{w,\tau}\): \(w\leftarrow w+\beta\,\mathrm{FI}_w^{\dagger}\nabla_w V_{w,\tau}(x_0)\) is equivalent to
+\(\pi_{t+1}(u|x)\propto(\pi_t(u|x))^{1-\beta\tau/(1-\alpha)}\exp\!\left(\tfrac{\beta}{1-\alpha}Q_{\pi_t}(x,u)\right)\).
+Choose \(\beta=(1-\alpha)/\tau\): \(\pi_t\)-exponent \(=0\), giving \(\pi_{t+1}\propto\exp(Q_{\pi_t}/\tau)\) \(=\) Soft PI.
+Soft PI \(\to\) standard PI as \(\tau\to 0\).
+
+\section{HW9}
+
+\textbf{Soft PI derivation (KL-regularized improvement).} Stochastic policy \(\pi_k(u|i)>0\). Step 1: evaluate \(Q_{\pi_k}\). Step 2: solve
+\(\max_{\pi_{k+1}}\!\sum_{i,u}\!\pi_{k+1}(u|i)Q_{\pi_k}(i,u)-\beta\!\sum_{i,u}\!\pi_{k+1}(u|i)\log\tfrac{\pi_{k+1}(u|i)}{\pi_k(u|i)}\)
+s.t.\ \(\pi_{k+1}(u|i)\ge0,\ \sum_u\pi_{k+1}(u|i)=1\).
+\textbf{Claim.} \(\pi^*_{k+1}(u|i)\propto\pi_k(u|i)\exp(Q_{\pi_k}(i,u)/\beta)\).
+\emph{Proof.} Objective separates across \(i\). Fix \(i\); let \(p(u){=}\pi_{k+1}(u|i),\,q(u){=}\pi_k(u|i),\,Q(u){=}Q_{\pi_k}(i,u)\), so
+\(\max_p\!\sum_u p(u)Q(u)-\beta\!\sum_u p(u)\log\tfrac{p(u)}{q(u)}\) s.t.\ \(\sum_u p(u){=}1\).
+Lagrangian \(L(p,\lambda)=\sum_u p(u)Q(u)-\beta\!\sum_u p(u)\log\tfrac{p(u)}{q(u)}+\lambda(\sum_u p(u)-1)\).
+Using \(\tfrac{d}{dp}[p\log\tfrac{p}{q}]=\log\tfrac{p}{q}+1\), set
+\(\partial L/\partial p(u)=Q(u)-\beta(\log\tfrac{p(u)}{q(u)}+1)+\lambda=0\).
+Rearrange: \(\log\tfrac{p(u)}{q(u)}=\tfrac{Q(u)}{\beta}+\tfrac{\lambda-\beta}{\beta}\), so
+\(p(u)=q(u)\exp(Q(u)/\beta)\cdot\exp(\tfrac{\lambda-\beta}{\beta})\).
+Second factor is \(u\)-independent, giving \(p(u)\propto q(u)\exp(Q(u)/\beta)\). Normalize:
+\(\pi^*_{k+1}(u|i)=\dfrac{\pi_k(u|i)\exp(Q_{\pi_k}(i,u)/\beta)}{\sum_{u'}\pi_k(u'|i)\exp(Q_{\pi_k}(i,u')/\beta)}\).
+\(p(u)\ge0\) holds automatically (\(q{>}0,\exp{>}0\)).
+
+\section{Midterm}
+
+\textbf{Deterministic Policy Gradient (DPG).} Continuous \(A\) with deterministic actor \(\mu_\theta(x)\).
+Target: \(\nabla_\theta Q(x_0,\mu_\theta(x_0))\,(=\nabla_\theta V^{\mu_\theta}(x_0)\), since \(V^{\mu_\theta}(x_0)=Q^{\mu_\theta}(x_0,\mu_\theta(x_0))\)).
+Here \(Q^{\mu_\theta}\) depends on \(\theta\) through \emph{all} future actions along the trajectory. Bellman recursion:
+\(\nabla_\theta V^{\mu_\theta}(x_0)=\nabla_u Q^{\mu_\theta}(x_0,u)|_{\mu_\theta(x_0)}\nabla_\theta\mu_\theta(x_0)\)
+\(+\alpha\,\mathbb E_{x_1}[\nabla_\theta V^{\mu_\theta}(x_1)]\), which unrolls to a trajectory sum.
+In practice approximate \(Q^{\mu_\theta}\) by the critic \(Q_w\):
+\(\nabla_\theta Q(x_0,\mu_\theta(x_0))=\mathbb E_{x_k\sim\mu_\theta}\!\Big[\sum_{k=0}^\infty\alpha^k\nabla_u Q_w(x_k,u)|_{\mu_\theta(x_k)}\nabla_\theta\mu_\theta(x_k)\Big]\).
+\textbf{Ex (Q4 '24).} Actor \(\mu_\theta(x){=}\tfrac{1}{1+e^{-\theta x}}\), critic \(Q_w(x,u){=}(\tfrac12(x{+}wu){-}1)^2\);
+\(\theta{=}0.5,\,w{=}1,\,\alpha{=}0.9,\,e{\approx}3\); traj \(x_0{=}2,\,x_1{=}4,\,x_2{=}2\).
+\emph{Gradients}: \(\nabla_u Q_w=\tfrac{w}{2}(x{+}wu)-w\) \(\xrightarrow{w=1}\) \(\tfrac12(x{+}u)-1\); \(\nabla_\theta\mu_\theta(x)=\tfrac{xe^{-\theta x}}{(1+e^{-\theta x})^2}\).
+\emph{Actions}: \(\mu_\theta(2)=\tfrac{1}{1+1/3}=\tfrac34\); \(\mu_\theta(4)=\tfrac{1}{1+1/9}=\tfrac{9}{10}\).
+\emph{Per-step values}: \(\nabla_u Q|_{x_0,\mu(x_0)}=\tfrac12(2{+}\tfrac34){-}1=\tfrac38\); \(\nabla_u Q|_{x_1,\mu(x_1)}=\tfrac12(4{+}\tfrac{9}{10}){-}1=\tfrac{29}{20}\); \(\nabla_\theta\mu(2)=\tfrac{2/3}{(4/3)^2}=\tfrac38\); \(\nabla_\theta\mu(4)=\tfrac{4/9}{(10/9)^2}=\tfrac{36}{100}\).
+\emph{Sum} (note \(x_2{=}x_0\), so 3rd term = 1st): \(\nabla_\theta Q\) \(=\) \((\tfrac38)(\tfrac38)+0.9(\tfrac{29}{20})(\tfrac{36}{100})+0.81(\tfrac38)(\tfrac38)\) \(\approx\) \(0.1406+0.4698+0.1139\) \(\approx\) \(\mathbf{0.7243}\).
+
+\section{Performance difference lemma}
+
+\textbf{PDL (Kakade–Langford '02).}
+\(V_{\tilde w}(x_0)-V_w(x_0)=\tfrac{1}{1-\alpha}\,\mathbb E_{x\sim\eta_{\tilde w},\,u\sim\pi_{\tilde w}(\cdot|x)}[A_w(x,u)]\),
+where \(A_w(x,u)=Q_w(x,u)-V_w(x)\) is advantage under \(\pi_w\), \(\eta_{\tilde w}\) is discounted state distribution under \(\pi_{\tilde w}\).
+Intuition: new value = old value + average of old-policy advantage along new-policy trajectory.
+\emph{Proof.} \(V_{\tilde w}(x_0)=\mathbb E_{\pi_{\tilde w}}\!\left[\sum_k\alpha^k r(x_k,u_k)\!\mid\!x_0\right]\). Add \(V_w(x_k)-V_w(x_k)\) inside the sum; the telescope \(\sum_k\alpha^k(\alpha V_w(x_{k+1})-V_w(x_k))=-V_w(x_0)\) (using \(\alpha^N V_w(x_N)\!\to\!0\)) gives \(V_{\tilde w}(x_0)=V_w(x_0)+\mathbb E_{\pi_{\tilde w}}\!\left[\sum_k\alpha^k(r(x_k,u_k)+\alpha V_w(x_{k+1})-V_w(x_k))\!\mid\!x_0\right]\).
+Inner expectation \(\mathbb E_{x_{k+1}\sim P(\cdot|x_k,u_k)}[r(x_k,u_k)+\alpha V_w(x_{k+1})]=Q_w(x_k,u_k)\), so \(V_{\tilde w}(x_0)-V_w(x_0)\) \(=\) \(\mathbb E_{\pi_{\tilde w}}[\sum_k\alpha^k(Q_w(x_k,u_k)-V_w(x_k))\!\mid\!x_0]\) \(=\) \(\sum_{x,u}\pi_{\tilde w}(u|x)A_w(x,u)\sum_k\alpha^k\Pr_{\pi_{\tilde w}}(x_k{=}x|x_0)\) \(=\) \(\tfrac{1}{1-\alpha}\mathbb E_{x\sim\eta_{\tilde w},u\sim\pi_{\tilde w}}[A_w(x,u)]\).
+\textbf{Applications.}
+(i) \emph{TRPO local approx}: if \(\pi_{\tilde w}\!\approx\!\pi_w\), replace \(\eta_{\tilde w}\!\to\!\eta_w\): \(V_{\tilde w}(x_0)\) \(\approx\) \(V_w(x_0)+\tfrac{1}{1-\alpha}\mathbb E_{x\sim\eta_w,u\sim\pi_{\tilde w}}[A_w(x,u)]\) \(=\) \(V_w(x_0)+\tfrac{1}{1-\alpha}\mathbb E_{x\sim\eta_w,u\sim\pi_w}[\tfrac{\pi_{\tilde w}(u|x)}{\pi_w(u|x)}A_w(x,u)]\) (importance sampling).
+(ii) \emph{Monotonic improvement}: any \(\pi_{\tilde w}\) making RHS \(>0\) strictly improves value.
+(iii) \emph{TRPO opt}: \(\max_{\tilde w}\mathbb E_{x\sim\eta_w}[\sum_u\pi_{\tilde w}(u|x)A_w(x,u)]\) s.t.\ \(\mathbb E_{x\sim\eta_w}[\mathrm{KL}(\pi_{\tilde w}\|\pi_w)]\le\delta\).
+
+\section{UCB algorithm for multi-armed bandits}
+
+\textbf{Setup.} \(I\) arms, \(X_i(t)\in[0,1]\) i.i.d.\ mean \(\mu_i\); regret \(R_K=\mu_1 K-\mathbb E[\sum_k X_{i_k}(k)]\) (arm 1 optimal). \(\varepsilon\)-greedy: \(R_K=O(K)\).
+\textbf{UCB.} Play each arm once; \(k>I\): \(i_k\in\arg\max_i[\hat\mu_i(k)+\sqrt{4\log K/N_i(k)}]\) (bonus = confidence interval, optimism in face of uncertainty).
+\(R_K=O(\sqrt{K\log K})\); instance-dep: \(R_K\le(\sum_{i\ge2}16/\Delta_i)\log K+o(1)\), \(\Delta_i{=}\mu_1{-}\mu_i\).
+\textbf{Proof.} \(B_k{=}\sqrt{4\log K/N_{i_k}(k)}\); \(R_K=\sum_k\mathbb E[F_1{+}F_2]\), \(F_1{=}\mu_1{-}\hat\mu_{i_k}{-}B_k\), \(F_2{=}\hat\mu_{i_k}{+}B_k{-}\mu_{i_k}\).
+\emph{Azuma–Hoeffding}: \(Y_n{=}\sum_{\tau\le n}X_{i,\tau}{-}n\mu_i\) martingale, \(|Y_{n+1}{-}Y_n|\le 1\Rightarrow\Pr(|\hat\mu_{i,n}{-}\mu_i|\ge\sqrt{4\log K/n})\le 2/K^2\).
+Union bound: \(\Pr(A)\ge 1{-}2I/K\) for \(A{=}\{|\hat\mu_{i,n}{-}\mu_i|\le\sqrt{4\log K/n}\,\forall i,n\}\).
+On \(A\): \(F_1\le 0\) (UCB rule \(\Rightarrow\hat\mu_{i_k}{+}B_k\ge\hat\mu_1{+}B_1\ge\mu_1\)), \(|F_2|\le 2B_k\); else \(F_1\le 1,F_2\le 1{+}2\sqrt{\log K}\).
+Using \(\sum_k 1/\sqrt{N_{i_k}(k)}\le 2I\sqrt K\), \(\Pr(A^c)\le 2I/K\) \(\Rightarrow R_K=O(\sqrt{K\log K})\).
+\textbf{Ex (Q3 '24).} Bernoulli 2-arm, bonus \(\sqrt{4\log K/N_i}\) (\(\log{=}\log_2\)), \(K{=}1024,\log K{=}10\). At \(k{=}411\): \(N_1{=}250,N_2{=}160,\hat\mu_1{=}0.6,\hat\mu_2{=}0.4\).
+\emph{(1) Pull}: \(\text{UCB}_1{=}0.6{+}\sqrt{40/250}{=}0.6{+}0.4{=}1.0\); \(\text{UCB}_2{=}0.4{+}\sqrt{40/160}{=}0.4{+}0.5{=}0.9\). Pull arm 1.
+\emph{(2) Update after reward 0}: \(\hat\mu_1\leftarrow(250(0.6){+}0)/251{=}150/251{\approx}0.5976\); \(\hat\mu_2\) unchanged.
+\emph{(3) Regret}: true \(\mu_1{=}0.55,\mu_2{=}0.45\); pulls \(1,1,2,2,1,1,2,1,2,1\) \(\Rightarrow N_1{=}6,N_2{=}4\). \(R_K{=}10(0.55){-}[6(0.55){+}4(0.45)]{=}N_2\Delta_2{=}4(0.1){=}\mathbf{0.4}\).
+
+\section{MCTS for Alpha-Zero}
+
+\textbf{Architecture.} Shared-backbone net outputs \((p_\theta(s),v_\theta(s))\): policy prior \(p_\theta\in\Delta^A\) and value \(v_\theta\in[-1,1]\).
+\textbf{Training samples.} Self-play produces \((s_{h,k},\pi_{h,k},z_k)\): state, MCTS-improved policy, final outcome \(\in\{-1,0,+1\}\).
+\textbf{Loss.} \(L=\sum_b(v_\theta(s_{h,k}){-}z_k)^2-\pi_{h,k}\cdot\log p_\theta(s_{h,k})+c\|\theta\|_2^2\) (value MSE + policy cross-entropy + L2).
+\textbf{MCTS simulation (4 steps).}
+\emph{1. Selection} (PUCT): while not leaf, \(a{=}\arg\max_u[Q(s,u)+h\,p_\theta(s,u)\sqrt{\!\sum_v\!N(s,v)}/(1{+}N(s,u))]\).
+\emph{2. Expansion}: stop at new state \(s''\) or terminal.
+\emph{3. Add node}: new \(s''\) added; init \(N(s'',a){=}Q(s'',a){=}0\,\forall a\).
+\emph{4. Backup.} Leaf value \(v\): if terminal, \(v{=}{+}1/{-}1/0\) (win/lose/draw, from the moving player's view at that node; \emph{signs alternate} along the path in 2-player games); if non-terminal new node, \(v{=}v_\theta(s'')\). Along path, update \(Q\) \emph{first} (uses old \(N\)) then \(N\):
+\(Q(s,a){\leftarrow}(N(s,a)Q(s,a){+}v)/(N(s,a){+}1)\); then \(N(s,a){\leftarrow}N(s,a){+}1\).
+\textbf{Action selection.} After many sims: \(\pi(a|s)=N(s,a)/\sum_{a'}N(s,a')\).
+\textbf{Ex (Q5 '24).} 2-player sim \((s_1,a_1){\to}(s_2,a_2){\to}s_3\) (terminal), P2 wins (\(r{=}\pm 1\)). Before: \(N(s_1,a_1){=}12,Q{=}{-}0.5\); \(N(s_2,a_2){=}4,Q{=}0.8\).
+\emph{(1) Backup.} Signs alternate (value from current player's view): \(v_{s_2}{=}{+}1\) (P2 won), \(v_{s_1}{=}{-}1\) (P1 lost).
+\((s_2,a_2)\): \(Q{\leftarrow}(4(0.8){+}1)/5{=}0.84\), \(N{\leftarrow}5\).
+\((s_1,a_1)\): \(Q{\leftarrow}(12({-}0.5){+}({-}1))/13{=}{-}7/13{\approx}{-}0.538\), \(N{\leftarrow}13\).
+\emph{(2) Visit-count policy.} \(N(s_1,\cdot){=}(13,14,10,8,5)\), sum \({=}50\); \(\pi(\cdot|s_1){=}(0.26,0.28,0.20,0.16,0.10)\).
+
+\section{Potential-based reward shaping}
+
+\textbf{Reward shaping.} \(\tilde M=(S,A,P,\alpha,\tilde R)\) with \(\tilde R=R+F\); bounded \(F:S{\times}A{\times}S\to\mathbb R\). Goal: \emph{policy invariance}.
+\textbf{Naive bonus fails} (e.g.\ ``+0.1 right''): agent cycles to farm \(F\) instead of solving task.
+\textbf{PBRS (Ng–Harada–Russell '99).} \(F\) is PBRS iff \(\exists\phi:S\to\mathbb R\) with \(F(x,a,x')=\alpha\phi(x')-\phi(x)\) (action-indep., telescoping).
+\textbf{Thm.} \emph{Suff}: PBRS \(\Rightarrow\) \(M\) and \(\tilde M\) share optimal policies. \emph{Nec}: non-PBRS \(F\Rightarrow\exists P,R\) with optimal policies not coincident.
+\emph{Proof (suff).} From \(Q^*(x,a){=}\mathbb E[R{+}\alpha\max_u Q^*(x',u)]\), subtract \(\phi(x)\) and add/subtract \(\alpha\phi(x')\): \(Q^*(x,a){-}\phi(x)=\mathbb E[R+(\alpha\phi(x'){-}\phi(x))+\alpha\max_u(Q^*(x',u){-}\phi(x'))]\). Set \(\hat Q:=Q^*{-}\phi\); RHS becomes \(\mathbb E[\tilde R+\alpha\max_u\hat Q(x',u)]\), i.e.\ \(\hat Q\) is a fp of \(\tilde M\)'s Bellman operator; uniqueness \(\Rightarrow\hat Q=\tilde Q^*\). Then \(\tilde\pi^*\) \(=\) \(\arg\max_u(Q^*(x,u){-}\phi(x))\) \(=\) \(\arg\max_u Q^*(x,u)\) \(=\) \(\pi^*\) (\(\phi(x)\) drops from argmax).
+\textbf{Intuition.} \(\phi\) = state potential; cyclic paths give zero net shaping (telescoping cancels), so no farming.
+\textbf{Ex (PBRS).} 3-state chain \(s_1,s_2,s_3\); \(\alpha{=}0.5\), potential \(\phi(s_1){=}0,\,\phi(s_2){=}2,\,\phi(s_3){=}4\).
+\emph{F values}: \(F(s_1,\cdot,s_2){=}0.5(2){-}0{=}1\); \(F(s_2,\cdot,s_3){=}0.5(4){-}2{=}0\);
+\(F(s_2,\cdot,s_1){=}0.5(0){-}2{=}{-}2\); \(F(s_3,\cdot,s_2){=}0.5(2){-}4{=}{-}3\).
+\emph{Cycle check} \(s_1{\to}s_2{\to}s_1\): discounted sum \(\alpha^0(1)+\alpha^1({-}2)=1{-}1=0\); no farming.
+
+\section{DPO \& DPO loss}
+
+\textbf{Bradley–Terry.} \(P(y_1\succ y_2|x)=\sigma(r(x,y_1)-r(x,y_2))\), \(\sigma(z)=1/(1+e^{-z})\); inverse (logit) \(\sigma^{-1}(p)=\log\tfrac{p}{1-p}\).
+\textbf{KL-regularized bandit (RLHF objective).}
+\(\max_\pi\mathbb E_{x\sim d_0,y\sim\pi(\cdot|x)}[r(x,y)]-\beta\mathbb E_{x\sim d_0}[\mathrm{KL}(\pi(\cdot|x)\|\pi_{\mathrm{ref}}(\cdot|x))]\).
+\textbf{Closed-form optimum (soft PI / Gibbs).}
+\(\pi^*(y|x)=\tfrac{1}{Z(x)}\pi_{\mathrm{ref}}(y|x)\exp(r(x,y)/\beta)\).
+\emph{Proof sketch (Lagrangian + KKT, cf.\ HW9).} \(\partial_\pi[\pi r-\beta\pi\log(\pi/\pi_{\mathrm{ref}})+\lambda(\sum\pi-1)]=0\)
+\(\Rightarrow r(x,y)-\beta(\log(\pi^*/\pi_{\mathrm{ref}}){+}1)+\lambda=0\); exponentiate; \(\lambda\) part is \(y\)-indep.\ \(\Rightarrow\) normalize.
+\textbf{DPO trick: invert for \(r\).}
+\(r(x,y)=\beta\log\dfrac{\pi^*(y|x)}{\pi_{\mathrm{ref}}(y|x)}+\beta\log Z(x)\).
+Substitute into BT: differences cancel \(\log Z(x)\) (prompt-dependent normalizer drops):
+\(P(y_1\succ y_2|x)=\sigma\!\left(\beta\log\dfrac{\pi^*(y_1|x)}{\pi_{\mathrm{ref}}(y_1|x)}-\beta\log\dfrac{\pi^*(y_2|x)}{\pi_{\mathrm{ref}}(y_2|x)}\right)\).
+So the optimal policy itself acts as the implicit reward — no reward model needed.
+\textbf{DPO loss} (cross-entropy / logistic regression on preference dataset \(D_p=\{(x_k,y_{w,k},y_{l,k})\}\)):
+\(L_{\mathrm{DPO}}(\theta)=-\mathbb E_{(x,y_w,y_l)\sim D_p}\!\Big[\!\log\sigma\!\Big(\beta\log\dfrac{\pi_\theta(y_w|x)}{\pi_{\mathrm{ref}}(y_w|x)}-\beta\log\dfrac{\pi_\theta(y_l|x)}{\pi_{\mathrm{ref}}(y_l|x)}\Big)\Big]\).
+\textbf{Ex (DPO).} \(\beta{=}1\); one sample: \(\pi_{\mathrm{ref}}(y_w|x){=}0.2,\pi_{\mathrm{ref}}(y_l|x){=}0.4\); \(\pi_\theta(y_w|x){=}0.4,\pi_\theta(y_l|x){=}0.2\).
+\emph{Ratios}: \(\pi_\theta/\pi_{\mathrm{ref}}(y_w){=}2,\,\pi_\theta/\pi_{\mathrm{ref}}(y_l){=}0.5\); log-ratios \(\ln 2,-\ln 2\).
+\emph{\(\sigma\)-arg}: \(z{=}\beta[\ln 2{-}({-}\ln 2)]{=}2\ln 2{=}\ln 4\).
+\emph{Sigmoid}: \(\sigma(\ln 4){=}1/(1{+}1/4){=}4/5{=}0.8\).
+\emph{Loss}: \(L_{\mathrm{DPO}}{=}{-}\ln 0.8{=}\ln(5/4)\approx\mathbf{0.223}\).
+Sanity: if \(\pi_\theta{=}\pi_{\mathrm{ref}}\Rightarrow z{=}0,\sigma{=}0.5,L{=}\ln 2\approx 0.693\) (larger, as expected).
+
+\section{Zeroth-order optimization}
+
+\textbf{ZO estimator (gradient-free).} Want \(\min_x f(x)\) when \(\nabla f\) unavailable.
+Sample \(u{\sim}\mathcal N(0,I)\); estimator \(g_\mu(x;u){:=}\dfrac{f(x+\mu u)-f(x)}{\mu}u\). Update \(x_{k+1}=x_k-h\,g_\mu(x_k;u_k)\).
+\textbf{Gaussian-smoothed} \(f_\mu(x){:=}\mathbb E_{u\sim\mathcal N(0,I)}[f(x+\mu u)]\) (\(f_\mu{\to}f\) as \(\mu{\to}0\)).
+\textbf{Key identity.} \(\nabla f_\mu(x)=\mathbb E_u[g_\mu(x;u)]\) \(\Rightarrow\) ZO is SGD on \(f_\mu\).
+\emph{Proof.} Let \(\phi(u){=}\tfrac{1}{(2\pi)^{n/2}}e^{-\|u\|^2/2}\). \(\nabla f_\mu(x)=\nabla_x\!\int\!f(x{+}\mu u)\phi(u)du\); sub \(y{=}x{+}\mu u\) \(\Rightarrow\) \(\nabla f_\mu(x)=\nabla_x\!\int\!f(y)\,\tfrac{1}{(2\pi)^{n/2}\mu^n}e^{-\|y-x\|^2/(2\mu^2)}dy\).
+Differentiating \(e^{-\|y-x\|^2/(2\mu^2)}\) w.r.t.\ \(x\) gives factor \((y{-}x)/\mu^2\); re-substitute \(u{=}(y{-}x)/\mu\): \(\nabla f_\mu(x)=\mathbb E_u[f(x{+}\mu u)\,u/\mu]\).
+Since \(\mathbb E[u]{=}0\), \(\mathbb E[f(x)u/\mu]{=}0\); subtract: \(\nabla f_\mu(x)\) \(=\) \(\mathbb E_u[\tfrac{f(x+\mu u)-f(x)}{\mu}u]\) \(=\) \(\mathbb E_u[g_\mu(x;u)]\).
+\textbf{SZPO (for RLHF).} No explicit reward — use "perturb + compare". Iter \(t\):
+(1) sample \(v_t\!\sim\!\mathcal N(0,I)\), perturbed \(\theta^*_t=\theta_t+\mu_t v_t\);
+(2) sample trajectory batches from \(\pi_{\theta_t},\pi_{\theta^*_t}\); query \(M\) evaluators \(\times N\) pairs;
+(3) compute scalar \(s_t\) (see below); direction \(\hat g_t=s_t v_t\);
+(4) update \(\theta_{t+1}=\theta_t+\alpha_t\hat g_t\).
+\textbf{Computing \(s_t\).} By ZO: \(s_t=[V(\pi_{\theta^*_t})-V(\pi_{\theta_t})]/\mu_t\).
+\emph{Known link (BT)}: \(r(\tau^*){-}r(\tau)\approx\sigma^{-1}(\hat P(\tau^*\!\succ\!\tau))\), so \(s_t\approx\tfrac{1}{\mu_t N}\!\sum_n\!\sigma^{-1}(\hat P_n)\).
+\emph{Unknown link (Sign-SZPO)}: \(s_t=\mathrm{sign}(\mathbb E[r(\tau^*){-}r(\tau)])\) via majority vote. Both converge.
+\textbf{Ex (ZO, mini-batch \(N{=}3\)).} \(f(x){=}x_1^2{+}x_2^2,\,x_k{=}(2,1),\,\mu{=}1,\,h{=}0.1\); true \(\nabla f{=}(4,2)\).
+Samples \(u^{(1)}{=}(1,1),\,u^{(2)}{=}(1,{-}1),\,u^{(3)}{=}({-}1,1)\); \(f(x_k){=}5\); \(f(x_k{+}\mu u^{(i)})\) at \((3,2),(3,0),(1,2)\) give \(13,9,5\).
+Estimators \(g_\mu^{(i)}{=}\tfrac{f(x_k+\mu u^{(i)})-f(x_k)}{\mu}u^{(i)}\): \((8,8),(4,{-}4),(0,0)\) — each is biased single-sample.
+Avg \(\bar g{=}\tfrac{1}{3}(12,4){=}(4,4/3)\approx(4,1.33)\); update \(x_{k+1}{=}(2,1){-}0.1(4,4/3){=}(\mathbf{1.6,0.867})\), very close to GD step \((1.6,0.8)\).
+\textbf{Ex (SZPO).} 2D; \(\theta_t{=}(1,0),\,v_t{=}(1,1),\,\mu_t{=}1,\,\alpha_t{=}0.1,\,N{=}1\); humans give \(\hat P(\tau^*{\succ}\tau){=}0.8\). Perturbed \(\theta^*{=}\theta_t{+}\mu_t v_t{=}(2,1)\).
+\emph{BT}: \(\sigma^{-1}(0.8){=}\log 4\approx 1.386\); \(s_t{=}\tfrac{1}{\mu_t N}\log 4{=}\log 4\); \(\hat g_t{=}s_t v_t{=}(\log 4,\log 4)\); \(\theta_{t+1}{=}(1,0){+}0.1(\log 4,\log 4)\approx\mathbf{(1.139,0.139)}\).
+\emph{Sign}: majority prefers perturbed \(\Rightarrow s_t{=}{+}1\); \(\hat g_t{=}(1,1)\); \(\theta_{t+1}{=}\mathbf{(1.1,0.1)}\).
+BT uses confidence magnitude (step scales with \(\hat P\)); Sign ignores magnitude, robust when link unknown.
+\textbf{Ex (HW9 Q2, 1D ZO convergence).} Scalar convex \(f\), unique \(x^*\!=\!\arg\min\); \(u{\sim}\mathcal N(0,1),\,g_\mu(x_k){=}\tfrac{f(x_k+\mu u_k)-f(x_k)}{\mu}u_k,\,x_{k+1}{=}x_k-hg_\mu\).
+\emph{(a) Recurrence}: square \(x_{k+1}{-}x^*{=}(x_k{-}x^*){-}hg_\mu\) \& take expectation:
+\(\mathbb E[(x_{k+1}{-}x^*)^2]{=}\mathbb E[(x_k{-}x^*)^2]{-}2h\mathbb E[g_\mu(x_k)(x_k{-}x^*)]{+}h^2\mathbb E[g_\mu^2]\).
+\emph{(b) Avg-iterate bound} (assume \(\mathbb E[g_\mu^2]{\le}g_{\max}\)): \(\tfrac{1}{T+1}\!\sum_{k=0}^T\!\mathbb E[f_\mu(x_k)]{-}f_\mu(x^*){\le}\tfrac{(x_0-x^*)^2}{2(T+1)h}{+}\tfrac{g_{\max}h}{2}\).
+\emph{Proof}: let \(\Delta_k{:=}\mathbb E[(x_k{-}x^*)^2]\). Tower (condition on \(x_k\); \(x_k{-}x^*\) is \(x_k\)-meas.\ so pulls out):
+\(\mathbb E[g_\mu(x_k)(x_k{-}x^*)]\) \(=\) \(\mathbb E[\mathbb E[g_\mu(x_k)(x_k{-}x^*)|x_k]]\) \(=\) \(\mathbb E[(x_k{-}x^*)\mathbb E[g_\mu|x_k]]\) \(=\) \(\mathbb E[(x_k{-}x^*)\nabla f_\mu(x_k)]\) (ZO unbiasedness).
+Convexity: \(f_\mu(x_k){-}f_\mu(x^*)\le(x_k{-}x^*)\nabla f_\mu(x_k)\).
+Sub into (a) with \(\mathbb E[g_\mu^2]{\le}g_{\max}\): \(\Delta_{k+1}\!\le\!\Delta_k{-}2h\mathbb E[f_\mu(x_k){-}f_\mu(x^*)]{+}h^2g_{\max}\).
+Rearrange: \(2h\mathbb E[f_\mu(x_k){-}f_\mu(x^*)]\le\Delta_k{-}\Delta_{k+1}{+}h^2g_{\max}\).
+Sum \(k{=}0..T\); \(\Delta_k\) telescopes: \(\sum_k(\Delta_k{-}\Delta_{k+1})\) \(=\) \(\Delta_0{-}\Delta_{T+1}\) \(\le\) \(\Delta_0\) \(=\) \((x_0{-}x^*)^2\).
+So \(2h\!\sum_k\!\mathbb E[f_\mu(x_k){-}f_\mu(x^*)]\le(x_0{-}x^*)^2{+}(T{+}1)h^2g_{\max}\); divide by \(2h(T{+}1)\).
+Optimal \(h^*{=}|x_0{-}x^*|/\!\sqrt{(T{+}1)g_{\max}}\) balances RHS; rate \(O(1/\!\sqrt T)\).
+\emph{(c) Smoothing error} (\(f\) is \(L\)-Lipschitz): \(|f_\mu(x){-}f(x)|\le\mu L\mathbb E[|u|]\) \(=\) \(\mu L\sqrt{2/\pi}\).
+\emph{Proof}: \(f_\mu(x){-}f(x)\) \(=\) \(\mathbb E[f(x{+}\mu u)]{-}f(x)\) \(=\) \(\mathbb E[f(x{+}\mu u){-}f(x)]\).
+Jensen \(|\mathbb E[X]|{\le}\mathbb E[|X|]\): \(|f_\mu(x){-}f(x)|\le\mathbb E[|f(x{+}\mu u){-}f(x)|]\).
+Lipschitz: \(|f(x{+}\mu u){-}f(x)|\le L|\mu u|\) \(=\) \(\mu L|u|\), so \(\mathbb E[|\cdots|]\le\mu L\mathbb E[|u|]\).
+\(u{\sim}\mathcal N(0,1)\Rightarrow\mathbb E[|u|]{=}\sqrt{2/\pi}\) (half-normal). Small \(\mu\Rightarrow f_\mu\!\approx\!f\).
+
+\section{Contrastive learning}
+
+\textbf{Idea.} Density estimation \(\to\) binary classification: positive \(x^+\!\sim\!P_+\) (data), negative \(x^-\!\sim\!P_-\) (noise, our choice); classifier \(f_\theta\) with \(P(x{\in}D)\approx\sigma(f_\theta(x))\). Avoids partition function.
+\textbf{BCE loss.} \(L(\theta){=}-\mathbb E[y\log\sigma(f_\theta(x))+(1{-}y)\log(1{-}\sigma(f_\theta(x)))]\).
+\textbf{Thm (Bayes-optimal classifier).} With \(P_+,P_-\) equally likely, \(f^*(x)=\log(P_+(x)/P_-(x))\) (log-density ratio); equiv.\ \(P_+(x)\propto e^{f^*(x)}P_-(x)\).
+\emph{Proof.} Write \(L{=}-\tfrac{1}{2}\!\int\![\log\sigma(f(x))P_+(x)+\log(1{-}\sigma(f(x)))P_-(x)]dx\). Pointwise \(d/df(x){=}0\) uses \(\sigma'{=}\sigma(1{-}\sigma)\): \(P_+(1{-}\sigma(f^*)){-}P_-\sigma(f^*){=}0\) \(\Rightarrow\) \(\sigma(f^*){=}\tfrac{P_+}{P_++P_-}\) \(\Rightarrow\) \(f^*{=}\log(P_+/P_-)\).
+\textbf{Goal-conditioned RL.} No reward; goal prior \(\psi(g)\); policies \(\pi(a|s,g)\), random-goal marginal \(\pi(a|s){=}\sum_g\pi(a|s,g)\psi(g)\).
+Goal reward \(r_g(s,a){=}(1{-}\gamma)p(s_{t+1}{=}g|s,a)\); \(Q^\pi(s,a,g){=}\mathbb E_\pi[\sum_t\gamma^t r_g(s_t,a_t)|s_0,a_0]\).
+\textbf{Q as occupancy.} \(Q^\pi(s,a,g)=p^\pi(s_+{=}g|s,a)\) where \(s_+\) is state at \(t\!\sim\!\mathrm{Geom}(1{-}\gamma)\). \(Q\) is itself a distribution over \(g\).
+\textbf{Contrastive RL.} Let \(x{=}(s,a,g)\); \(P_+(x){=}p^\pi(g|s,a)d_0(s,a)\), \(P_-(x){=}\psi(g)d_0(s,a)\). By CL thm, \(f^*(s,a,g)\) \(=\) \(\log\dfrac{P_+}{P_-}\) \(=\) \(\log\dfrac{Q^\pi(s,a,g)}{\psi(g)}\), so \(Q^\pi(s,a,g){=}e^{f^*(s,a,g)}\psi(g)\) and \(\arg\max_a f^*{=}\arg\max_a Q^\pi\). No TD/Bellman — pure supervised classification.
+\textbf{Sampling.} \emph{Positive}: \((s,a)\!\sim\!d_0\), roll out \(\pi\), \(g^+{=}s_{t^+},t^+\!\sim\!\mathrm{Geom}(1{-}\gamma)\), label \(+\). \emph{Negative}: \((s,a,g^-),g^-\!\sim\!\psi\) independent, label \(-\).
+\textbf{Param.} Log-linear \(f(s,a,g){=}\phi(s,a)^\top\psi(g)\) (two encoder nets); emergent representation learning.
+\textbf{Ex (MC estimate of \(p^\pi\)).} Run \(N{=}5\) rollouts from \((s_1,a_1)\); each step stop w.p.\ \(1{-}\gamma\); suppose stop states are \(\{s_2,s_3,s_2,s_2,s_3\}\). Then \(\hat p^\pi(s_+|s_1,a_1){=}(0,\,3/5,\,2/5)\) for \((s_1,s_2,s_3)\); converges to true \(p^\pi\) as \(N{\to}\infty\).
+\textbf{Ex (CL-RL).} \(\mathcal S{=}\{s_1,s_2,s_3\}\), uniform \(\psi(g){=}1/3\); observe \(p^\pi(s_+|s_1,a_1){=}(0.5,0.3,0.2)\) over \((s_1,s_2,s_3)\).
+\emph{Q}: \(Q^\pi(s_1,a_1,g){=}p^\pi(s_+{=}g|s_1,a_1){=}(0.5,0.3,0.2)\).
+\emph{\(f^*\)}: \(f^*{=}\log(Q^\pi/\psi){=}\log(3Q^\pi){=}(\log 1.5,\log 0.9,\log 0.6)\approx(0.405,{-}0.105,{-}0.511)\).
+\emph{Argmax}: both yield \(s_1\) \(\checkmark\).
+\emph{Recover}: \(Q^\pi{=}e^{f^*}\psi{=}(1.5,0.9,0.6)/3{=}(0.5,0.3,0.2)\) \(\checkmark\). Sign of \(f^*\) says \(g\) is easier (\(+\)) or harder (\(-\)) to reach than prior.
+
+\section{Relative value function \& Blackwell optimality}
+
+\textbf{Avg-reward MDP.} \(\max\lim_{N\to\infty}\tfrac{1}{N}\!\sum_{k=0}^{N-1}\!\mathbb E[r(x_k,u_k)]\). Under unichain \(\mu\): \(V^\mu_0(i){=}\!\sum_j\!\pi_j r(j,\mu(j))\) — \emph{independent} of \(i\) (stationary dist dominates).
+\textbf{Relative value.} From \(V^{(N)}_0(i){=}\max\!\sum_{k=0}^{N-1}\!\mathbb E[r|x_0{=}i]\), set \(h_N(i){:=}V^{(N)}_0(i){-}NV^*\); substitute \& let \(N{\to}\infty\):
+\(V^*{+}h(i){=}\max_u\{r(i,u)+\!\sum_j\!P_{ij}(u)h(j)\}\).
+\(V^*\): optimal avg reward (scalar); \(h(i)\): transient bonus relative to average, \(V^{(N)}_0(i)\!\approx\!NV^*{+}h(i)\). Normalize \(h(0){=}0\) (additive freedom).
+\textbf{Optimality thm.} \((V^*,h)\) solving Bellman \(\Rightarrow\) argmax policy \(\mu^*\) is optimal, \(V^*\) is optimal avg reward.
+\emph{Proof.} \(V^*\ge r(i,\mu(i)){+}\mathbb E[h(x_{k+1})|\mu]{-}h(i)\);
+take \(\mathbb E_{x_k}\) + telescoping over \(k{=}0..N{-}1\):
+\(NV^*\ge\!\sum_k\!\mathbb E[r]{+}\mathbb E[h(x_N)]{-}\mathbb E[h(x_0)]\);
+Let's \(/N\) then \(N{\to}\infty\) (\(h\) is bounded) \(\Rightarrow V^*\ge\bar r^\mu\); equality at \(\mu^*\).
+\textbf{Relative VI.} Plain VI (\(\alpha{=}1\)) diverges (\(V_k\approx kV^*{+}h\)). Use relative values \(\tilde V_k{=}V_k{-}V_k(x_0)\).
+\emph{Alg 1} (two sequences): init \(\tilde V_0(i){=}0\); then iterate
+\(V_{k+1}(i){=}\max_u\{r(i,u){+}\!\sum_j\!P_{ij}(u)\tilde V_k(j)\}\); \(\tilde V_{k+1}(i){=}V_{k+1}(i){-}V_{k+1}(x_0)\).
+
+\emph{Alg 2} (single sequence): \(V_{k+1}(i){=}\max_u\{r(i,u){+}\!\sum_j\!P_{ij}(u)V_k(j)\}{-}V_k(x_0)\).
+\textbf{Policy iter (avg).} Fix \(\mu_k\); \emph{eval}: solve
+\(V_k{+}h_k(i){=}r(i,\mu_k(i)){+}\!\sum_j\!P_{ij}(\mu_k(i))h_k(j)\,\forall i\), \(h_k(0){=}0\).
+\emph{Improve}: \(\mu_{k+1}(i)\!\in\!\arg\max_u\{r(i,u){+}\!\sum_j\!P_{ij}(u)h_k(j)\}\); stop if \((V_{k+1},h_{k+1}){=}(V_k,h_k)\).
+\textbf{Improvement thm.} If \(r(i,\mu(i)){+}\!\sum_j\!P_{ij}(\mu(i))h(j)\ge V{+}h(i)\,\forall i\), then \(V^\mu\ge V\) (strict if strict holds at some positive-recurrent state).
+\emph{Proof.} Multiply both sides by \(\pi^\mu_i\) and sum over \(i\):
+\(\sum_i\pi^\mu_i r(i,\mu(i)){+}\sum_i\pi^\mu_i\!\sum_j\!P_{ij}(\mu(i))h(j)\ge V{+}\!\sum_i\pi^\mu_i h(i)\).
+By stationarity, \(\sum_i\pi^\mu_i P_{ij}(\mu(i)){=}\pi^\mu_j\Rightarrow\) the \(h\)-terms cancel; LHS = \(V^\mu\), giving \(V^\mu\ge V\).
+\textbf{Avg Q-learning.} \(Q(i,u){:=}r{+}\!\sum\!P_{ij}(u)h(j){-}V^*\), so \(h{=}\max_u Q\) and
+\(Q(i,u){=}r{+}\!\sum\!P_{ij}(u)\!\max_v Q(j,v){-}V^*\).
+Surrogate \(V^*\!\to\!\max_v\!Q_k(0,v)\). Let \(\delta_k{=}r{+}\!\max_v\!Q_k(j,v){-}Q_k(i,u){-}\!\max_v\!Q_k(0,v)\);
+update \(Q_{k+1}(i,u){=}Q_k(i,u){+}\beta_k\,\delta_k\).
+\textbf{Blackwell optimality.} \(\mu^*\) is BO if optimal \(\forall\alpha\in(\bar\alpha,1)\). For finite \(S,A\), BO policies exist and are also avg-reward optimal.
+\emph{Existence.} Finitely many det policies; along \(\alpha_n{\uparrow}1\) some \(\mu^*\) repeats.
+If \(\mu^*\) not BO, another \(\bar u\) wins on subseq \(\tilde\alpha_m{\uparrow}1\);
+but \(Q_\alpha(i,u)\) is rational in \(\alpha\), can't change sign \(\infty\)-often — contradiction.
+\emph{BO \(\Rightarrow\) avg opt.} Laurent \(V^\mu_\alpha(x){=}\tfrac{\bar V^\mu}{1-\alpha}{+}h^\mu(x){+}O(1{-}\alpha)\).
+BO gives \(V^{\bar\mu}_\alpha\!\le\!V^{\mu^*}_\alpha\) as \(\alpha{\to}1\); leading term \(\Rightarrow\bar V^{\bar\mu}\!\le\!\bar V^{\mu^*}\).
+\textbf{Ex (crowdsourcing).} Type-\(i\) arrives w.p.\ \(p_i\), completes w.p.\ \(q_i\), reward \(R_i\); state \(0\){=}idle, \(i\){=}busy. Bellman: \(V^*{+}h(0){=}\!\sum_i\!p_i\max(h(i),h(0))\); \(V^*{+}h(i){=}q_i(R_i{+}h(0)){+}(1{-}q_i)h(i)\). Set \(h(0){=}0\Rightarrow h(i){=}R_i{-}V^*/q_i\); sub: \(V^*{=}\!\sum_i\!p_i\max(R_i{-}V^*/q_i,\,0)\) (implicit in \(V^*\)). Optimal: accept type-\(i\) iff \(R_i{\ge}V^*/q_i\).
+\textbf{Ex (avg-reward 2-state MDP).} States \(\{0,1\}\), actions \(\{s,w\}\); det.\ \((0,s){\to}0,(0,w){\to}1,(1,s){\to}1,(1,w){\to}0\); rewards \(r(0,s){=}1,r(0,w){=}2,r(1,s){=}3,r(1,w){=}0\). Ref \(x_0{=}0\). Optimum: \(V^*{=}3,h{=}(0,1),\mu^*{=}(w,s)\).
+\emph{Relative VI (Alg 2)}: \(V_0{=}(0,0)\).
+\(V_1(0){=}\max\{1,2\}{-}0{=}2\), \(V_1(1){=}\max\{3,0\}{-}0{=}3\).
+\(V_2(0){=}\max\{1{+}2,2{+}3\}{-}2{=}3\), \(V_2(1){=}\max\{3{+}3,0{+}2\}{-}2{=}4\). Converged: \(V_k{\to}(V^*{+}h){=}(3,4)\).
+\emph{PI (avg).} \(\mu_0{=}(s,w)\). \emph{Eval 1} (\(h_0(0){=}0\)): \(V_0{=}1,h_0(1){=}{-}1\).
+\emph{Improve 1}: \(i{=}0\): \(\max\{1{+}0,2{+}({-}1)\}{=}\max\{1,1\}\,\)(tie, take \(w\)); \(i{=}1\): \(\max\{2,0\}{\to}s\); so \(\mu_1{=}(w,s)\).
+\emph{Eval 2}: \(V_1{=}3,h_1(1){=}1\). \emph{Improve 2}: \((w,s){=}\mu_1\) — stop.
+\emph{Avg Q-learning.} \(Q_k{=}\!\bigl(\!\begin{smallmatrix}1&2\\4&0\end{smallmatrix}\!\bigr)\) (rows \(=\) state, cols \(=\{s,w\}\)), \(\beta_k{=}0.5\); experience \((i{=}0,u{=}w,r{=}2,j{=}1)\):
+\(\delta_k{=}2{+}\!\max\{4,0\}{-}2{-}\!\max\{1,2\}{=}2{+}4{-}2{-}2{=}2\); \(Q_{k+1}(0,w){=}2{+}0.5(2){=}\mathbf{3}\).
+
+\section{Duality \& KKT conditions}
+
+\textbf{Primal.} \(\max_{x\in S}f(x)\) s.t.\ \(h_i(x)\!\le\!0\) (\(i{=}1..I\)), \(g_j(x){=}0\) (\(j{=}1..J\)).
+\textbf{Lagrangian.} \(L(x,\lambda,\mu){=}f(x){-}\!\sum_i\!\lambda_i h_i(x){+}\!\sum_j\!\mu_j g_j(x),\,\lambda_i{\ge}0\) (\(\mu_j\) unrestricted).
+\textbf{Dual function.} \(D(\lambda,\mu){:=}\sup_{x\in S}L(x,\lambda,\mu)\).
+\textbf{Weak duality thm.} (i) \(D\) is \emph{convex} in \((\lambda,\mu)\); (ii) \(D(\lambda,\mu)\ge f^*\).
+\emph{Proof.} (i) \(L\) is affine in \((\lambda,\mu)\); pointwise sup of affine functions is convex.
+(ii) For feasible \(x\): \(-\sum_i\lambda_i h_i\ge 0\) (since \(\lambda{\ge}0,h{\le}0\)) and \(\sum_j\mu_j g_j{=}0\), so \(L(x,\lambda,\mu)\ge f(x)\); sup over feasible \(x\) gives \(D\ge f^*\).
+\textbf{Dual problem.} \(d^*{:=}\inf_{\lambda\ge 0,\mu}D(\lambda,\mu)\). \emph{Duality gap} \(d^*{-}f^*\!\ge\!0\); \emph{strong duality}: \(d^*{=}f^*\).
+\textbf{Slater's condition} (sufficient for strong duality): \(f\) concave, \(h_i\) convex, \(g_j\) affine, and \(\exists x\in\mathrm{relint}(S)\) with \(h_i(x){<}0\,\forall i,\,g_j(x){=}0\,\forall j\).
+\textbf{KKT conditions.} \(f,h_i\) diff, Slater holds. Then \(x^*\) is global max iff \(\exists\lambda_i^*{\ge}0,\,\mu_j^*\):
+\emph{(1) Stationarity}: \(\tfrac{\partial f}{\partial x_k}(x^*){-}\!\sum_i\!\lambda_i^*\tfrac{\partial h_i}{\partial x_k}(x^*){+}\!\sum_j\!\mu_j^*\tfrac{\partial g_j}{\partial x_k}(x^*){=}0\,\forall k\).
+\emph{(2) Complementary slackness}: \(\lambda_i^* h_i(x^*){=}0\,\forall i\).
+(Plus feasibility \(h{\le}0,g{=}0\); dual feasibility \(\lambda{\ge}0\).) Strictly concave \(f\Rightarrow x^*\) unique.
+\emph{CS proof.} Strong duality: \(f(x^*)\) \(=\) \(D(\lambda^*,\mu^*)\) \(\ge\) \(L(x^*,\lambda^*,\mu^*)\) \(=\) \(f(x^*){-}\!\sum\!\lambda_i^*h_i(x^*)\) (\(g{=}0\)); so \(\sum\lambda_i^*h_i(x^*){\ge}0\). But each term \(\lambda_i^*h_i(x^*){\le}0\Rightarrow\) all \({=}0\).
+\textbf{Ex (resource alloc).} Variable \(x{=}(x_0,x_1,\ldots,x_L)\!\in\!\mathbb R^{L+1}\): \(x_0\) is the ``hub'' (in every constraint); \(x_l\) (\(l{=}1..L\)) are ``spokes'' (each in one constraint); \(r\) indexes all components \(0..L\) in objective.
+\(\max\!\sum_{r=0}^L\!\log x_r\) s.t.\ \(x_0{+}x_l{\le}1\,\forall l{=}1..L,\,x{\ge}0\).
+Stationarity: \(1/x_0^*{=}\!\sum_l\!\lambda_l^*\); \(1/x_r^*{=}\lambda_r^*\) (\(r{=}1..L\)). By symmetry over spokes, \(x_1^*{=}{\cdots}{=}x_L^*{=:}\tilde x\) (scalar).
+From CS (active): \(x_0^*{+}\tilde x{=}1\Rightarrow x_0^*{=}1{-}\tilde x\); \(\lambda_l^*{=}1/\tilde x\); sub into 1st: \(1/(1{-}\tilde x){=}L/\tilde x\Rightarrow\tilde x{=}L/(L{+}1)\).
+So \(x_0^*{=}1/(L{+}1),\,x_1^*{=}{\cdots}{=}x_L^*{=}L/(L{+}1),\,\lambda_l^*{=}(L{+}1)/L\); Slater's satisfied (e.g.\ \(x_r{=}0.1\)).
+
+\end{multicols*}
+
+\end{document}
